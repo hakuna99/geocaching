@@ -4,21 +4,25 @@
     <meta charset="UTF-8">
     <title>Title</title>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="https://unpkg.com/jquery.terminal@1.x.x/js/jquery.terminal.min.js"></script>
-    <link href="https://unpkg.com/jquery.terminal@1.x.x/css/jquery.terminal.min.css" rel="stylesheet"/>
+    <script src="jquery-3.3.1.min.js"></script>
+    <script src="jquery.terminal.min.js"></script>
+    <link href="jquery.terminal.min.css" rel="stylesheet"/>
 
     <style>
-        html, body{
+        html, body {
             height: 100%;
             width: 100%;
             margin: 0;
         }
-        #terminal{
+
+        #terminal {
             height: 100%;
         }
 
-
+        .terminal * {
+            font-size: 20px;
+            line-height: 24px;
+        }
 
     </style>
 </head>
@@ -26,29 +30,155 @@
 <div id="terminal"></div>
 
 <script>
-    (async function() {
+    (async function () {
+        const term = $('#terminal').terminal(() => 0, {greetings: '', scrollOnEcho: true, prompt: ''});
 
-        function input(question){
-            return term.read(question)
+
+        async function drawHangman(stage) {
+            if (stage === 1) {
+                await term.echo(' _______    ');
+            } else if (stage === 2) {
+                await term.echo('    | ');
+                await term.echo('    |');
+                await term.echo('    |      ');
+                await term.echo('    |     ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 3) {
+                await term.echo('    _______');
+                await term.echo('    |    ');
+                await term.echo('    |  ');
+                await term.echo('    |      ');
+                await term.echo('    |    ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 4) {
+                await term.echo('    _______');
+                await term.echo('    | /   ');
+                await term.echo('    |/   ');
+                await term.echo('    |      ');
+                await term.echo('    |     ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 5) {
+                await term.echo('    _______');
+                await term.echo('    | /   |');
+                await term.echo('    |/   ');
+                await term.echo('    |      ');
+                await term.echo('    |     ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 6) {
+                await term.echo('    _______');
+                await term.echo('    | /   |');
+                await term.echo('    |/    O ');
+                await term.echo('    |       ');
+                await term.echo('    |       ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 7) {
+                await term.echo('    _______');
+                await term.echo('    | /   |');
+                await term.echo('    |/    O ');
+                await term.echo('    |     | ');
+                await term.echo('    |       ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 8 || stage === 9) {
+                await term.echo('    _______');
+                await term.echo('    | /   |');
+                if (stage === 8) {
+                    await term.echo(Math.random() > 0.5 ? '    |/    O/' : '    |/   \\O ');
+                } else {
+                    await term.echo('    |/   \\O/');
+                }
+                await term.echo('    |     | ');
+                await term.echo('    |       ');
+                await term.echo(' ___|___    ');
+            } else if (stage === 10 || stage === 11) {
+                await term.echo('    _______');
+                await term.echo('    | /   |');
+                await term.echo('    |/   \\O/');
+                await term.echo('    |     | ');
+                if (stage === 10) {
+                    await term.echo(Math.random() > 0.5 ? '    |    /   ' : '    |      \\ ');
+                } else {
+                    await term.echo('    |    / \\ ');
+                }
+                await term.echo(' ___|___    ');
+            }
         }
 
-        function print(text){
-            return term.echo(text);
+        async function drawGuess(word, guessedChars) {
+            const text = word.toUpperCase().split('').map(char => {
+                if (guessedChars.includes(char)) {
+                    return char;
+                } else {
+                    return '_'
+                }
+            }).join(' ');
+            await term.echo(text);
         }
 
+        function isWordGuessed(word, guessedChars) {
+            return word.toUpperCase().split('').every(char => guessedChars.includes(char));
+        }
 
-        var term = $('#terminal').terminal(function (){}, {
-            greetings: '',
-        });
+        const words = ['Burgverlies', 'Klon', 'Büfett', 'Strophe', 'Terabyte', 'Fronleichnam', 'Galionsfigur', 'Jackett'];
 
+        await term.echo('Herzlich Willkommen zum Galgenraten! ');
 
-       var size = await input('What size of game board?\n')
-
-       await print('deine spielfeldgröße' + size);
-
-
+        async function play() {
 
 
+            const word = words[Math.floor(Math.random() * words.length)];
+            const guessedChars = [];
+            let wrongGuesses = 0;
+
+            while (true) {
+                await drawGuess(word, guessedChars);
+                if (guessedChars.length > 0) {
+                    await term.echo('Geratene Buchstaben: ' + guessedChars.join(', '));
+                }
+                const char = (await term.read('Rate einen Buchstaben:')).toUpperCase();
+                if (!/^[a-zäüö]$/i.test(char)) {
+                    await term.echo('[[;red;black]Bitte Gib einen buchstaben ein.]');
+                    continue;
+                }
+                if (guessedChars.includes(char)) {
+                    await term.echo('[[;red;black]' + char + ' wurde bereits geraten.]');
+                    continue;
+                }
+                guessedChars.push(char);
+
+                if (word.toUpperCase().includes(char)) {
+                    if (isWordGuessed(word, guessedChars)) {
+                        await term.echo('[[;green;black]Glückwunsch! Du hast gewonnen!]');
+                        await term.echo( word + 'ist die richtige Lösung.');
+                        break;
+                    }
+                    await term.echo('[[;green;black]' + char + ' kommt im Wort vor.]');
+                } else {
+                    await term.echo('[[;red;black]' + char + ' kommt nicht im Wort vor.]');
+                    wrongGuesses++;
+                    await drawHangman(wrongGuesses);
+                    if (wrongGuesses >= 11) {
+                        await term.echo('[[;red;black]GAME OVER!]');
+                        await term.echo(word + ' wäre die richtige Lösung gewesen.');
+                        break;
+                    }
+                }
+            }
+
+            let answer;
+            do {
+                answer = (await term.read('Erneut spielen? (J/N)')).toUpperCase();
+            } while (!['Y', 'J', 'JA', 'YES', 'N', 'NO', 'NEIN'].includes(answer));
+
+            if (['Y', 'J', 'JA', 'YES'].includes(answer)) {
+                term.clear();
+                await play();
+            } else {
+                term.disable();
+            }
+
+        }
+
+        await play();
 
 
     })();
